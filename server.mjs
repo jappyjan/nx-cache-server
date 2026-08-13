@@ -24,47 +24,52 @@ const eq = (a, b) => a.length === b.length && timingSafeEqual(Buffer.from(a), Bu
 
 await mkdir(DIR, { recursive: true });
 
+// Nx rejects an endpoint that answers an error without a text/plain body —
+// "Misconfigured remote cache endpoint: Requests should respond with text/plain
+// on 401s" — so every non-2xx reply carries one.
+const fail = (res, code, msg) => res.writeHead(code, { 'content-type': 'text/plain' }).end(msg);
+
 const server = createServer((req, res) => {
   if (req.url === '/health') return res.writeHead(200).end('ok');
 
   // the regex is also the path-traversal guard: nothing but an Nx hash gets through
   const hash = /^\/v1\/cache\/([\w-]+)$/.exec(req.url)?.[1];
-  if (!hash) return res.writeHead(404).end();
+  if (!hash) return fail(res, 404, 'not found');
 
   const tok = (req.headers.authorization ?? '').slice('Bearer '.length);
-  if (!eq(tok, RW) && !eq(tok, RO)) return res.writeHead(401).end();
+  if (!eq(tok, RW) && !eq(tok, RO)) return fail(res, 401, 'unauthorized');
 
   const file = join(DIR, hash);
 
   if (req.method === 'GET') {
     return createReadStream(file)
-      .on('error', () => res.writeHead(404).end())
+      .on('error', () => fail(res, 404, 'cache miss'))
       .on('open', () => res.writeHead(200, { 'content-type': 'application/octet-stream' }))
       .pipe(res);
   }
 
   if (req.method === 'PUT') {
-    if (!eq(tok, RW)) return res.writeHead(403).end();
+    if (!eq(tok, RW)) return fail(res, 403, 'read-only token');
     return stat(file).then(
-      () => res.writeHead(409).end(),
+      () => fail(res, 409, 'already cached'),
       () => {
         // write to a temp file and rename, so a dropped connection never leaves a
         // truncated artifact that Nx would happily restore as a "successful" build
         const tmp = `${file}.${process.pid}.tmp`;
         const out = createWriteStream(tmp);
-        out.on('error', () => res.writeHead(500).end());
+        out.on('error', () => fail(res, 500, 'write failed'));
         req.on('aborted', () => unlink(tmp).catch(() => {}));
         req.pipe(out).on('finish', () =>
           rename(tmp, file).then(
             () => res.writeHead(202).end(),
-            () => res.writeHead(500).end()
+            () => fail(res, 500, 'write failed')
           )
         );
       }
     );
   }
 
-  res.writeHead(405).end();
+  fail(res, 405, 'method not allowed');
 });
 
 // ponytail: atime-based eviction, no size cap. relatime gives day-granularity atime,

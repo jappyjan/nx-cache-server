@@ -20,5 +20,7 @@ check "$(cat "$DIR/got")" hello "body round-trips"
 check "$(code abc /dev/null -H 'Authorization: Bearer nope')" 401 "bad token -> 401"
 check "$(code abc /dev/null)" 401 "no token -> 401"
 check "$(code ../../etc/passwd /dev/null -H 'Authorization: Bearer rw')" 404 "path traversal -> 404"
+# nx refuses an endpoint whose 401 is not text/plain
+check "$(curl -s -o /dev/null -w '%{content_type}' localhost:39999/v1/cache/abc)" "text/plain" "401 is text/plain"
 
 echo "all good"
