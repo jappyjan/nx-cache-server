@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Nx Cache</title>
+  <link rel="stylesheet" href="/admin/app.css">
+</head>
+<body>
+  <aside><strong>Nx Cache</strong><a href="#overview">Overview</a><a href="#tokens">Tokens</a><a href="#setup">Machine setup</a><a href="#admins">Administrators</a><a href="#entries">Entries</a></aside>
+  <main>
+    <header><div><p class="eyebrow">Operations</p><h1>Cache health</h1></div><span class="healthy">Healthy</span></header>
+    <section id="summary" class="cards"></section>
+    <section><h2>Recent activity</h2><ol id="activity"></ol></section>
+    <section id="tokens">
+      <h2>Developer tokens</h2>
+      <form id="token-form"><input name="label" placeholder="Machine or developer name" required><select name="permission"><option value="rw">Read/write</option><option value="ro">Read-only</option></select><button>Create token</button></form>
+      <pre id="reveal" hidden></pre><div id="token-list"></div>
+    </section>
+    <section id="setup">
+      <h2>Machine setup</h2>
+      <p>Create a token above, download the installer, then enter the token at its hidden prompt. Restart terminals and AI agents afterward; every new worktree will use the cache.</p>
+      <p><strong>macOS:</strong> <a href="/admin/install/macos.sh">Download installer</a></p>
+      <pre>read -s TOKEN
+sh ~/Downloads/macos.sh --server https://nx.attraccess.apps.janjaap.de --token "$TOKEN"
+unset TOKEN</pre>
+      <p><strong>Linux:</strong> <a href="/admin/install/linux.sh">Download installer</a></p>
+      <pre>read -s TOKEN
+sh ~/Downloads/linux.sh --server https://nx.attraccess.apps.janjaap.de --token "$TOKEN"
+unset TOKEN</pre>
+      <p><strong>Windows:</strong> <a href="/admin/install/windows.ps1">Download installer</a></p>
+      <pre>.\windows.ps1 -Server https://nx.attraccess.apps.janjaap.de -Token '&lt;token&gt;'</pre>
+    </section>
+    <section id="admins"><h2>Administrators</h2><form id="admin-form"><input name="email" type="email" placeholder="developer@example.com" required><button>Add email</button></form><div id="admin-list"></div></section>
+    <section id="entries">
+      <div class="section-heading"><div><h2>Cache entries</h2><p id="entry-count" class="muted"></p></div><button id="clear-cache" class="danger">Clear cache</button></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Hash</th><th>Size</th><th>Created</th><th>Last accessed</th><th>Accesses</th><th class="action-column">Action</th></tr></thead>
+          <tbody id="entry-list"></tbody>
+        </table>
+      </div>
+      <div id="entry-pagination" class="pagination"></div>
+    </section>
+  </main>
+  <script src="/admin/app.js"></script>
+</body>
+</html>
